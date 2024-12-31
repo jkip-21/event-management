@@ -21,6 +21,7 @@ class EventController extends Controller
     public function __construct()
     {
         // $this->authorizeResource(Event::class, 'event');
+        // $this->middleware('throttle:60,1')>only('store','destroy');
     }
 
     public function index()

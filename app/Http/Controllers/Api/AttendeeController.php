@@ -15,6 +15,11 @@ class AttendeeController extends Controller
     use CanLoadRelationships;
 
     private array $relations = ['user'];
+
+    public function __construct(){
+                // $this->middleware('throttle:60,1')>only('store','destroy');
+
+    }
     /**
      * Display a listing of the resource.
      */
@@ -32,7 +37,7 @@ class AttendeeController extends Controller
     {
         $attendee = $this->loadRelationships(
         $event->attendees()->create([
-            'user_id'=> 1
+            'user_id'=> $request->user()->id
         ]));
         return new AttendeeResource($attendee);
     }

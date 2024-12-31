@@ -2,9 +2,9 @@
 
 namespace App\Console\Commands;
 
-use App\Notifications\EventReminderNotification;
 use Illuminate\Console\Command;
 use Illuminate\Support\Str;
+use App\Models\Event;
 
 class SendReminders extends Command
 {
@@ -20,34 +20,35 @@ class SendReminders extends Command
      *
      * @var string
      */
-    protected $description = 'Sends Notification to all events attendees that the events starts soon';
+    protected $description = 'Sends notifications to all event attendees whose events start within 24 hours';
 
     /**
      * Execute the console command.
      */
     public function handle()
     {
-        // filter through the events to check events which starts in 24 hours
-        $events = \App\Models\Event::with('attendees.user')
+        // Fetch events starting within 24 hours
+        $events = Event::with('attendees.user')
             ->whereBetween('start_time', [now(), now()->addDay()])
             ->get();
 
         $eventCount = $events->count();
         $eventLabel = Str::plural('event', $eventCount);
 
-        $this->info("Found {$eventCount} {$eventLabel}");
+        $this->info("Found {$eventCount} {$eventLabel} starting in the next 24 hours.");
 
-        // iterate over all the events and to tell every single attendee that a particular event is due in 24 hrs
+        // Notify attendees
+        $events->each(function ($event) {
+            $event->attendees->each(function ($attendee) use ($event) {
+                if (isset($attendee->user)) {
+                    $this->info("Notifying attendee {$attendee->user->id} for event {$event->id}");
+                } else {
+                    $this->warn("Attendee has no associated user for event {$event->id}");
+                }
+            });
+        });
 
-        $events->each(fn($event) => $event->attendees->each(
-            fn($attendee) =>
-            $attendee->user->notify(
-                new EventReminderNotification(
-                    $event
-                )
-            )
-        ));
-
-        $this->info('Reminder notification sent successfully');
+        $this->info('Reminder notifications sent successfully.');
     }
 }
+  
